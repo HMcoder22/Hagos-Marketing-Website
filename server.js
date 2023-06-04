@@ -20,4 +20,8 @@ app.get('/information', (req,res) =>{
     res.render('information')
 })
 
+app.get('/contact', (req,res) =>{
+    res.render('contact')
+})
+
 app.listen(process.env.PORT || 3000)

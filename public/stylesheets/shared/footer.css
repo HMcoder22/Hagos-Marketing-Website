@@ -1,0 +1,35 @@
+:root{
+    --color-dark:rgb(46, 9, 147);
+    --color-medium:rgb(84,96,214);
+    --color-light:rgb(96,239,255);
+}
+
+footer {
+    background-color: var(--color-medium);
+    color: white;
+    display: flex;
+    flex-direction: column;
+}
+
+.main-footer-nav{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    margin: 0;
+    padding: 0;
+}
+
+.footer-nav{
+    list-style-type: none;
+    margin: 0.5rem;
+}
+
+.footer-link{
+    color: white;
+    text-decoration: none;
+}
+
+#footer-contact{
+    margin: auto;
+    padding-top: 1rem;
+}
