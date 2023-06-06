@@ -4,14 +4,24 @@
     --color-light:rgb(96,239,255);
 }
 
+header {
+    /* background-color: var(--color-medium); */
+    background-color: white;
+    color: white;
+    display: flex;
+    flex-direction: column;
+}
+
 .nav li {
     display: inline;
 }
 
 .header-nav {
     display: inline-block;
-    padding: .5em;
-    color: var(--color-dark);
+    padding: .05em;
+    /* color: var(--color-dark); */
+    color: black;
+    font-size: 85%;
     text-decoration: none;
 }
 
@@ -24,9 +34,9 @@
     text-align: center;
     font-size: 1.1em;
     font-weight: lighter;
-    border-bottom: 1px solid rgba(255,255,255,.3);
+    /* border-bottom: 1px solid rgba(255,255,255,.3); */
 }
 
 .main-header-nav li {
-    padding: 0 5%;
+    padding: 0 3%;
 }

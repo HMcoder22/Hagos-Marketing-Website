@@ -1,0 +1,116 @@
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
+.top-section {
+    background-size: cover;
+    background-position: center;
+    height: 500px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    margin-bottom: 5em;
+    flex-direction: column;
+}
+
+.seo-background {
+    background-image: url("https://images.unsplash.com/photo-1600469984476-c713650f1b1b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2970&q=80");
+}
+
+.consultation-background {
+    background-image: url("https://images.unsplash.com/photo-1533750516457-a7f992034fec?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1506&q=80");
+}
+
+.contact-background {
+    background-image: url("https://images.unsplash.com/photo-1516387938699-a93567ec168e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1471&q=80");
+    height: 400px;
+    background-color: gray;
+    background-blend-mode: multiply;
+}
+
+.about-background {
+    background-image: url("https://images.unsplash.com/photo-1553877522-43269d4ea984?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80");
+    height: 400px;
+}
+
+.service-h1 {
+    font-size: 60px;
+    text-align: center;
+    margin-bottom: 2%;
+}
+
+.service-description-h2 {
+    font-size: 30px;
+}
+
+.service-img-left {
+    float: left;
+    height: 35%;
+    width: 50%;
+    margin-right: 3em;
+}
+
+.service-img-right {
+    float: right;
+    height: 35%;
+    width: 50%;
+    margin-left: 3em;
+}
+
+.service-description-section {
+    margin-top: 10%;
+    margin-bottom: 10%;
+    padding: 0 1.5em;
+}
+
+.content-section-container {
+    margin: 15% 5% 20% 5%;
+    padding: 0 1.5em;
+}
+
+.btn {
+    font-size: 16px;
+    background-color: rgb(84,96,214);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    padding: 10px 20px;
+}
+
+.call-button:hover {
+    background-color: rgba(84,96,214, .7);
+}
+
+input[type=text], select, textarea {
+    width: 100%; /* Full width */
+    padding: 12px; /* Some padding */ 
+    border: 1px solid #ccc; /* Gray border */
+    border-radius: 4px; /* Rounded borders */
+    box-sizing: border-box; /* Make sure that padding and width stays in place */
+    margin-top: 6px; /* Add a top margin */
+    margin-bottom: 16px; /* Bottom margin */
+    resize: vertical /* Allow the user to vertically resize the textarea (not horizontally) */
+}
+  
+input[type=submit] {
+    background-color: rgb(84,96,214);
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+input[type=submit]:hover {
+    background-color: rgba(84,96,214, .7);  
+}
+
+.contact-container {
+    border-radius: 5px;
+    background-color: #f2f2f2;
+    padding: 20px;
+    margin: 5% 15% 5% 15%;
+}
