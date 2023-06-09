@@ -1,11 +1,14 @@
 :root{
-    --color-dark:rgb(46, 9, 147);
-    --color-medium:rgb(84,96,214);
-    --color-light:rgb(96,239,255);
+    --color-1:rgb(73,23,214);
+    --color-2:rgb(84,96,214);
+    --color-3:rgb(80,179,235);
+    --color-4:rgb(96,239,255);
+    --color-4:rgb(243,243,250);
 }
 
 footer {
-    background-color: var(--color-medium);
+    /* background-color: var(--color-medium); */
+    background: linear-gradient(to top,rgb(73,23,214),rgb(84,96,214));
     color: white;
     display: flex;
     flex-direction: column;

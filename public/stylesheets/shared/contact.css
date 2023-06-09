@@ -1,0 +1,43 @@
+.contact-top {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 1em 0;
+    flex-direction: column;
+}
+
+.contact-background {
+    background-image: url("https://images.unsplash.com/photo-1516387938699-a93567ec168e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1471&q=80");
+    height: 400px;
+    background-color: gray;
+    background-blend-mode: multiply;
+}
+
+.contact-h1 {
+    font-size: 40px;
+    color: black;
+}
+
+.contact-h2 {
+    font-size: small;
+}
+
+.contact-p {
+    font-size: 15px;
+}
+
+.contact-img {
+    height: 25%;
+    width: 35%;
+    margin-bottom: 0;
+}
+
+.contact-section {
+    justify-content: center;
+    display: flex;
+    margin-bottom: 2e;
+}
+
+.contact-container {
+    margin: 1% 8% 1% 8%;
+}
