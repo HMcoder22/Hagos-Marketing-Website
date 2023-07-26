@@ -1,0 +1,395 @@
+<template>
+    <div class="video-interview">
+        <h3 class="text-danger" v-show="live">Live</h3>
+
+        <div v-if="isWebRTCSupported">
+            <div :class="{'videos--fullscreen': fullscreen}" class="videos">
+                <div :class="live ? 'video-remote' : 'video-self'">
+                    <video ref="selfview" autoplay></video>
+                </div>
+                <div :class="live ? 'video-self' : 'video-remote'">
+                    <video ref="remoteview" autoplay></video>
+                </div>
+                <div class="videos__logo">
+                    <img alt="" src="/images/logo.png">
+                </div>
+                <div class="videos__actions">
+                    <button @click="handleFullscreen" v-if="fullscreen"><i class="la la-compress"></i></button>
+                    <button @click="handleFullscreen" v-else><i class="la la-expand"></i></button>
+                </div>
+            </div>
+
+            <button class="btn btn-outline-danger" v-show="showEndCallButton" @click="endCurrentCall">
+                {{ $t('End Interview') }}
+            </button>
+            <div v-show="readyToStart && isOwner && showCallButton">
+                <button type="button" class="btn btn-primary" @click="start">
+                    <i class="la la-video-camera"></i> {{ callButtonText }}
+                </button>
+            </div>
+        </div>
+        <div v-else>
+            {{ $t('Please use Google Chrome, Mozilla Firefox or Opera') }}
+        </div>
+    </div>
+</template>
+
+<script>
+    import RecordRTC from 'recordrtc'
+    import DetectRTC from 'detectrtc'
+
+    const initializeRTCGlobals = () => {
+        window.RTCIceCandidate = window.RTCIceCandidate || window.webkitRTCIceCandidate || window.mozRTCIceCandidate
+            || window.msRTCIceCandidate;
+        window.RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection
+            || window.mozRTCPeerConnection || window.msRTCPeerConnection;
+    }
+
+    export default {
+        props: ['interview', 'user'],
+        data() {
+            return {
+                showCallButton: true,
+                callButtonText: 'Call',
+                timer: null, // timer for 1 min to show "Hold on" message to jobseeker if employer if offline
+                stream: null,
+                readyToStart: false,
+                live: false, // indicates whether interview is going live i.e. interview is going on
+                users: [],
+                id: null,
+                room: null,
+                rtc: null, // RTC connection
+                channel: null, // Echo channel instance
+                showEndCallButton: false,
+                recorder: null,
+                isRecordingSupported: false,
+                isWebRTCSupported: false,
+                streamAdded: false, // indicates whether participant's stream is added to video container
+                fullscreen: false
+            }
+        },
+        computed: {
+            isOwner() {
+                return this.user.id == this.interview.employer_id
+            }
+        },
+        watch: {
+            live(live) {
+                if (live) {
+                    clearTimeout(this.timer)
+                    this.$bus.$emit('interview-live')
+                }
+            },
+        },
+        created() {
+            DetectRTC.load(() => {
+                this.isWebRTCSupported = DetectRTC.isWebRTCSupported
+                this.isRecordingSupported = DetectRTC.isVideoSupportsStreamCapturing
+            })
+            initializeRTCGlobals()
+            this.prepareCaller()
+            this.establishConnection()
+
+            this.getCamera().then(stream => {
+                this.stream = stream
+                this.$refs.selfview.srcObject = this.stream
+                this.$refs.selfview.muted = true
+            }).catch(error => console.log(error))
+            this.timer = setTimeout(() => {
+                this.showHoldOnNotification()
+            }, 60 * 1000)
+        },
+        methods: {
+            start() {
+                let jobseeker = this.users.filter(user => user.id == this.interview.jobseeker_id).pop()
+                if (jobseeker) {
+                    this.showCallButton = false
+                    this.callUser(jobseeker)
+                }
+            },
+            isReadyToStart() {
+                if (this.user.id == this.interview.jobseeker_id) {
+                    // if currently logged in user is a jobseeker then check if an employer is online
+                    this.readyToStart = this.users.filter(user => user.id == this.interview.employer_id).length > 0
+                } else if (this.user.id == this.interview.employer_id) {
+                    // if currently logged in user is an employer then check if a jobseeker is online
+                    this.readyToStart = this.users.filter(user => user.id == this.interview.jobseeker_id).length > 0
+                }
+            },
+            prepareCaller() {
+                //Initializing a peer connection
+                this.rtc = new window.RTCPeerConnection({
+                    'iceServers': [
+                        {
+                            'urls': 'stun:stun.l.google.com:19302'
+                        },
+                        {
+                            'urls': 'turn:numb.viagenie.ca',
+                            'credential': 'afj;afj;',
+                            'username': 'keway@topmailer.info'
+                        }
+                    ]
+                });
+                this.rtc.oniceconnectionstatechange = () => {
+                    console.log(this.rtc.iceConnectionState);
+                }
+                //Listen for ICE Candidates and send them to remote peers
+                this.rtc.onicecandidate = event => {
+                    if (event.candidate) {
+                        console.log("onicecandidate called");
+                        this.channel.whisper("client-candidate", {
+                            "candidate": event.candidate,
+                            "room": this.room,
+                        });
+                    }
+                };
+                //onaddstream handler to receive remote feed and show in remoteview video element
+                this.rtc.ontrack = event => {
+                    console.log("onaddstream called");
+                    console.log(event.streams[0])
+                    this.$refs.remoteview.srcObject = event.streams[0];
+                    this.addStreamToRecording(event.streams[0])
+                };
+            },
+            startRecording(stream) {
+                if (this.isRecordingSupported && !this.recorder) {
+                    this.recorder = new RecordRTC([stream], {
+                        type: 'video',
+                        video: {
+                            width: 1280,
+                            height: 720,
+                        },
+                        mimeType: 'video/webm;codecs=vp8',
+                        bitsPerSecond: 1024000,
+                        sampleRate: 48000,
+                    }).startRecording()
+                }
+                this.callButtonText = 'Recall'
+            },
+            addStreamToRecording(stream) {
+                if (this.isRecordingSupported && this.recorder && !this.streamAdded) {
+                    this.streamAdded = true
+                    this.recorder.getInternalRecorder().resetVideoStreams([this.stream])
+                    this.recorder.getInternalRecorder().addStreams([stream])
+                }
+            },
+            stopRecording() {
+                if (this.isRecordingSupported && this.recorder && this.isOwner) {
+                    this.recorder.stopRecording(async () => {
+                        let formData = new FormData();
+                        let url = `/blob/interview/${this.interview.id}`
+
+                        formData.append('video', this.recorder.getBlob());
+
+                        this.$swal({
+                            title: this.$t('Please wait'),
+                            text: this.$t('Processing interview...'),
+                            type: 'info',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                            onBeforeOpen: () => {
+                                this.$swal.showLoading()
+                            }
+                        })
+
+                        let {data} = await this.$http.post(url, formData, {
+                            headers: {
+                                'Content-Type': 'multipart/form-data',
+                            },
+                        })
+
+                        if (data) {
+                            this.channel.whisper('interview.uploaded')
+                            setTimeout(() => {
+                                window.location.reload()
+                            }, 1000);
+                        }
+                        this.$swal.close()
+
+                        this.recorder = null;
+                    });
+                }
+                this.callButtonText = 'Call'
+            },
+            getCamera() {
+                //Get local audio/video feed and show it in selfview video element
+                return navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true,
+                });
+            },
+            //Create and send offer to remote peer on button click
+            async callUser(user) {
+                this.toggleEndCallButton();
+                this.stream.getTracks().forEach((track) => {
+                    this.rtc.addTrack(track, this.stream);
+                });
+                let offer = await this.rtc.createOffer()
+                await this.rtc.setLocalDescription(offer)
+
+                this.channel.whisper("client-sdp", {
+                    "sdp": offer,
+                    "room": user.id,
+                    "to": user.name,
+                    "from": this.user.name,
+                });
+
+                this.room = user.id;
+                this.live = true
+            },
+            endCall(stop = false, rejected = false) {
+                this.showCallButton = true
+                this.streamAdded = false
+                this.live = false
+                this.room = null
+                this.rtc.close()
+                this.prepareCaller()
+                this.toggleEndCallButton()
+                if (stop) {
+                    this.stopRecording()
+                } else if (this.isOwner && !rejected) {
+                    this.$swal({
+                        title: this.$t('End the interview?'),
+                        text: this.$t('Candidate left the interview'),
+                        type: 'info',
+                        showCancelButton: true,
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: this.$t('Wait...'),
+                        cancelButtonText: this.$t('End'),
+                    }).then(result => {
+                        if (result.dismiss) {
+                            this.stopRecording()
+                        }
+                    })
+                }
+            },
+            endCurrentCall() {
+                this.channel.whisper("client-endcall", {
+                    "room": this.room,
+                });
+                this.endCall(this.isOwner);
+            },
+            toggleEndCallButton() {
+                this.showEndCallButton = !this.showEndCallButton
+            },
+            establishConnection() {
+                this.channel = window.Echo.join(`interview.${this.interview.hash}`)
+                    .here((users) => {
+                        this.id = this.channel.pusher.channels.channels[this.channel.name].members.me.id
+                        users.forEach(user => {
+                            if (user.id != this.id) {
+                                this.users.push({id: user.id, name: user.name})
+                                this.isReadyToStart()
+                            }
+                        });
+                    })
+                    .joining(user => {
+                        this.users.push({id: user.id, name: user.name})
+                        this.isReadyToStart()
+                    })
+                    .leaving(user => {
+                        let index = this.users.indexOf(user.id);
+                        this.users.splice(index, 1);
+                        if (user.id == this.room) {
+                            this.endCall()
+                        }
+                        this.isReadyToStart()
+                    })
+                    .listenForWhisper("client-candidate", message => {
+                        //Listening for the candidate message from a peer sent from onicecandidate handler
+                        if (message.room == this.room) {
+                            setTimeout(() => {
+                                this.rtc.addIceCandidate(new RTCIceCandidate(message.candidate))
+                            }, 500)
+                        }
+                    })
+                    .listenForWhisper("client-sdp", async message => {
+                        //Listening for Session Description Protocol message with session details from remote peer
+                        if (message.room != this.id) {
+                            return;
+                        }
+                        console.log("sdp received");
+
+                        let result = await this.$swal({
+                            title: this.$t('Would you like to answer?'),
+                            text: this.$t('You have a call from') + ': ' + message.from,
+                            type: 'info',
+                            showCancelButton: true,
+                            cancelButtonColor: '#d33',
+                            confirmButtonText: this.$t('Answer'),
+                            cancelButtonText: this.$t('Reject'),
+                        })
+
+                        if (result.dismiss) {
+                            console.log('rejected')
+                            return this.channel.whisper("client-reject", {
+                                "room": message.room,
+                                "rejected": message.to
+                            });
+                        }
+                        console.log('answered')
+
+                        this.room = message.room;
+                        await this.rtc.setRemoteDescription(message.sdp)
+                        this.toggleEndCallButton();
+                        this.$refs.selfview.srcObject = this.stream
+                        this.$refs.selfview.muted = true
+                        this.stream.getTracks().forEach(track => {
+                            this.rtc.addTrack(track, this.stream);
+                        });
+                        if (this.rtc.remoteDescription.type !== 'offer') {
+                            return;
+                        }
+                        let answer = await this.rtc.createAnswer()
+                        this.rtc.setLocalDescription(answer);
+                        this.channel.whisper("client-answer", {
+                            "sdp": answer,
+                            "room": this.room,
+                        });
+
+                        this.live = true
+                    })
+                    .listenForWhisper("client-answer", answer => {
+                        if (answer.room == this.room) {
+                            console.log("answer received");
+                            this.startRecording(this.stream)
+                            this.rtc.setRemoteDescription(answer.sdp);
+                        }
+                    })
+                    .listenForWhisper("client-reject", async answer => {
+                        if (answer.room == this.room) {
+                            console.log("Call declined");
+                            this.$swal()
+                            await this.$swal({
+                                title: this.$t('Call was declined'),
+                                text: answer.rejected + ' ' + this.$t('rejected your call'),
+                            })
+                            this.endCall(false, true);
+                        }
+                    })
+                    .listenForWhisper("client-endcall", answer => {
+                        if (answer.room == this.room) {
+                            console.log("Call Ended");
+                            this.endCall();
+                        }
+                    })
+                    .listenForWhisper('interview.uploaded', () => window.location.reload())
+            },
+            showHoldOnNotification() {
+                if (this.isOwner) {
+                    return
+                }
+                this.$swal({
+                    toast: true,
+                    type: 'info',
+                    text: this.interview.employer.name + ' is not online, please hold on',
+                    position: 'bottom-end'
+                })
+            },
+            handleFullscreen() {
+                this.fullscreen = !this.fullscreen;
+                $('html').css('overflow', this.fullscreen ? 'hidden' : 'visible');
+            }
+        },
+    }
+</script>
